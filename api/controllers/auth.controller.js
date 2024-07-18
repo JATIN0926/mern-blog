@@ -90,10 +90,10 @@ export const google = async (req, res, next) => {
         profilePicture: photoURL,
       });
       const token = jwt.sign(
-        { id: newUser._id, isAdmin: newUser.isAdmin },
+        { id: NewUser._id, },
         process.env.JWT_SECRET
       );
-      const { password, ...rest } = newUser._doc;
+      const { password, ...rest } = NewUser._doc;
       res
         .status(200)
         .cookie('access_token', token, {
