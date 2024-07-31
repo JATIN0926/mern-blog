@@ -1,23 +1,25 @@
 import { Alert, Button, TextInput } from "flowbite-react";
 import { useEffect, useRef, useState } from "react";
-import { useSelector } from "react-redux";
-import {
-  getDownloadURL,
-  getStorage,
-  ref,
-  uploadBytesResumable,
-} from "firebase/storage";
+import { useDispatch, useSelector } from "react-redux";
+import { getDownloadURL, getStorage, ref, uploadBytesResumable } from "firebase/storage";
 import { app } from "../firebase";
 import { CircularProgressbar } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
+import { updateFailure, updateStart, updateSuccess } from "../redux/user/UserSlice";
+
 export default function DashProfile() {
   const [formData, setFormData] = useState({});
   const [imageFile, setImageFile] = useState(null);
   const [imageFileUrl, setImageFileUrl] = useState(null);
   const [imageFileUploadProgress, setImageFileUploadProgress] = useState(null);
   const [imageFileUploadError, setImageFileUploadError] = useState(null);
+  const [imageFileUploading, setImageFileUploading] = useState(false);
+  const [updateUserSuccess, setUpdateUserSuccess] = useState(null);
+  const [updateUserError, setUpdateUserError] = useState(null);
   const filePickerRef = useRef();
+  const dispatch = useDispatch();
   const { currentUser } = useSelector((state) => state.user);
+
   const handleChange = (e) => {
     e.preventDefault();
     setFormData({
@@ -25,31 +27,44 @@ export default function DashProfile() {
       [e.target.id]: e.target.value,
     });
   };
+
   const handleImgChange = (e) => {
     const file = e.target.files[0];
+    console.log("Selected file:", file); // Check if file is correctly selected
     if (file) {
       setImageFile(file);
       setImageFileUrl(URL.createObjectURL(file));
+    } else {
+      setImageFile(null); // Handle case where no file is selected
     }
   };
 
   useEffect(() => {
+    console.log("Image file changed:", imageFile); // Log when imageFile changes
     if (imageFile) {
       UploadImage();
     }
   }, [imageFile]);
+
   const UploadImage = async () => {
-    setImageFileUploadError(null)
+    if (!imageFile) {
+      setImageFileUploadError("No file selected");
+      return;
+    }
+    setImageFileUploading(true);
+    setImageFileUploadError(null);
+
     const storage = getStorage(app);
     const fileName = new Date().getTime() + imageFile.name;
+    console.log("Uploading file with name:", fileName); // Log file name
     const storageRef = ref(storage, fileName);
     const uploadTask = uploadBytesResumable(storageRef, imageFile);
+
     uploadTask.on(
       "state_changed",
       (snapshot) => {
         const progress =
           (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-
         setImageFileUploadProgress(progress.toFixed(0));
       },
       (error) => {
@@ -59,21 +74,61 @@ export default function DashProfile() {
         setImageFileUploadProgress(null);
         setImageFile(null);
         setImageFileUrl(null);
-        // setImageFileUploading(false);
+        setImageFileUploading(false);
       },
       () => {
         getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
           setImageFileUrl(downloadURL);
-          // setFormData({ ...formData, profilePicture: downloadURL });
-          // setImageFileUploading(false);
+          setFormData({ ...formData, profilePicture: downloadURL });
+          setImageFileUploading(false);
         });
       }
     );
   };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setUpdateUserError(null);
+    setUpdateUserSuccess(null);
+    if (Object.keys(formData).length === 0) {
+      setUpdateUserError("No changes made");
+      return;
+    }
+    if (imageFileUploading) {
+      setUpdateUserError("Please wait for image to upload");
+      return;
+    }
+    try {
+      dispatch(updateStart());
+      const res = await fetch(`/api/user/update/${currentUser?._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        dispatch(updateFailure(data.message));
+        setUpdateUserError(data.message);
+      } else {
+        dispatch(updateSuccess(data));
+        setUpdateUserSuccess("User's profile updated successfully");
+      }
+    } catch (error) {
+      dispatch(updateFailure(error.message));
+      setUpdateUserError(error.message);
+    }
+  };
+
+  if (!currentUser) {
+    return <div>Loading...</div>;
+  }
+
   return (
-    <div className=" max-w-lg mx-auto p-3 w-full">
-      <h1 className=" my-7 text-center font-semibold text-3xl">Profile</h1>
-      <form className=" flex  flex-col">
+    <div className="max-w-lg mx-auto p-3 w-full">
+      <h1 className="my-7 text-center font-semibold text-3xl">Profile</h1>
+      <form className="flex flex-col" onSubmit={handleSubmit}>
         <input
           type="file"
           accept="image/*"
@@ -82,7 +137,7 @@ export default function DashProfile() {
           hidden
         />
         <div
-          className=" relative w-32 h-32 self-center cursor-pointer shadow-md overflow-hidden rounded-full"
+          className="relative w-32 h-32 self-center cursor-pointer shadow-md overflow-hidden rounded-full"
           onClick={() => filePickerRef.current.click()}
         >
           {imageFileUploadProgress && (
@@ -139,20 +194,16 @@ export default function DashProfile() {
           placeholder="password"
           onChange={handleChange}
         />
-        <Button
-          type="submit"
-          gradientDuoTone="purpleToBlue"
-          outline
-          // disabled={loading || imageFileUploading}
-        >
-          {/* {loading ? 'Loading...' : 'Update'} */}
+        <Button type="submit" gradientDuoTone="purpleToBlue" outline>
           Update
         </Button>
       </form>
-      <div className=" text-red-500 flex justify-between mt-5">
-        <span className=" cursor-pointer">Delete Account</span>
-        <span className=" cursor-pointer">Sign Out</span>
+      <div className="text-red-500 flex justify-between mt-5">
+        <span className="cursor-pointer">Delete Account</span>
+        <span className="cursor-pointer">Sign Out</span>
       </div>
+      {updateUserError && <Alert color="failure">{updateUserError}</Alert>}
+      {updateUserSuccess && <Alert color="success">{updateUserSuccess}</Alert>}
     </div>
   );
 }
