@@ -30,7 +30,6 @@ export default function UpdatePost() {
       const fetchPost = async () => {
         const res = await fetch(`/api/post/getposts?postId=${postId}`);
         const data = await res.json();
-        console.log("data",data.posts)
         if (!res.ok) {
           console.log(data.message);
           setPublishError(data.message);
