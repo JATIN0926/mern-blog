@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import userRoutes from "./routes/user.route.js";
 import authRoutes from "./routes/auth.route.js";
 import PostRoutes from "./routes/post.route.js";
+import commentRoutes from "./routes/comment.route.js";
 import cookieParser from "cookie-parser";
 dotenv.config();
 mongoose
@@ -23,6 +24,7 @@ app.use(cookieParser())
 app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/post", PostRoutes);
+app.use("/api/comment", commentRoutes);
 
 //middlewares
 
