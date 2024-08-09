@@ -17,10 +17,10 @@ const CommentSection = ({ postId }) => {
     if (comment.length > 200) return;
 
     try {
-      const res = await fetch('/api/comment/create', {
-        method: 'POST',
+      const res = await fetch("/api/comment/create", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           content: comment,
@@ -30,7 +30,7 @@ const CommentSection = ({ postId }) => {
       });
       const data = await res.json();
       if (res.ok) {
-        setComment('');
+        setComment("");
         setCommentError(null);
         setComments([data, ...comments]);
       }
@@ -53,6 +53,34 @@ const CommentSection = ({ postId }) => {
     };
     getComments();
   }, [postId]);
+
+  const handleLike = async (commentId) => {
+    try {
+      if (!currentUser) {
+        navigate('/sign-in');
+        return;
+      }
+      const res = await fetch(`/api/comment/likeComment/${commentId}`, {
+        method: 'PUT',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setComments(
+          comments.map((comment) =>
+            comment._id === commentId
+              ? {
+                  ...comment,
+                  likes: data.likes,
+                  numberOfLikes: data.likes.length,
+                }
+              : comment
+          )
+        );
+      }
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
 
   return (
     <div className=" mx-w-2xl mx-auto w-full p-3">
@@ -106,13 +134,13 @@ const CommentSection = ({ postId }) => {
           )}
         </form>
       )}
-       {comments.length === 0 ? (
-        <p className='text-sm my-5'>No comments yet!</p>
+      {comments.length === 0 ? (
+        <p className="text-sm my-5">No comments yet!</p>
       ) : (
         <>
-          <div className='text-sm my-5 flex items-center gap-1'>
+          <div className="text-sm my-5 flex items-center gap-1">
             <p>Comments</p>
-            <div className='border border-gray-400 py-1 px-2 rounded-sm'>
+            <div className="border border-gray-400 py-1 px-2 rounded-sm">
               <p>{comments.length}</p>
             </div>
           </div>
@@ -120,7 +148,7 @@ const CommentSection = ({ postId }) => {
             <Comment
               key={comment._id}
               comment={comment}
-              // onLike={handleLike}
+              onLike={handleLike}
               // onEdit={handleEdit}
               onDelete={(commentId) => {
                 setShowModal(true);
