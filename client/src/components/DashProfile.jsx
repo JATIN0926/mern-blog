@@ -45,17 +45,16 @@ export default function DashProfile() {
 
   const handleImgChange = (e) => {
     const file = e.target.files[0];
-    console.log("Selected file:", file); // Check if file is correctly selected
+    console.log("Selected file:", file);
     if (file) {
       setImageFile(file);
       setImageFileUrl(URL.createObjectURL(file));
     } else {
-      setImageFile(null); // Handle case where no file is selected
+      setImageFile(null);
     }
   };
 
   useEffect(() => {
-    console.log("Image file changed:", imageFile); // Log when imageFile changes
     if (imageFile) {
       UploadImage();
     }
@@ -178,7 +177,7 @@ export default function DashProfile() {
   return (
     <div className="max-w-lg mx-auto p-3 w-full">
       <h1 className="my-7 text-center font-semibold text-3xl">Profile</h1>
-      <form className="flex flex-col" onSubmit={handleSubmit}>
+      <form className="flex flex-col gap-3.5" onSubmit={handleSubmit}>
         <input
           type="file"
           accept="image/*"
