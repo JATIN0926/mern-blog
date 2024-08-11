@@ -17,6 +17,7 @@ mongoose
   });
 const app = express();
 
+// app.set('case sensitive routing', true);
 app.use(express.json());
 app.use(cookieParser())
 //routes
